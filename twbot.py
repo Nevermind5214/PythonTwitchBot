@@ -26,7 +26,6 @@ class Bot(commands.Bot):
 		else:
 			write(message.author.display_name + ": " + message.content)
 			if "@" + self.username in message.content: await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
-
 			await self.handle_commands(message)
 
 ###########################################################################
