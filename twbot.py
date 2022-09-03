@@ -1,6 +1,5 @@
 from twitchio.ext import commands
-from urllib.request import urlopen
-import json,csv,datetime,os
+import json,datetime,os
 
 def timestamp(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 def write(szoveg): print(timestamp() + " |  " + str(szoveg))
