@@ -1,12 +1,15 @@
 from twitchio.ext import commands
 from urllib.request import urlopen
-import json,csv,random,datetime,re,os
+import json,csv,datetime,os
 
 def timestamp(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 def write(szoveg): print(timestamp() + " |  " + str(szoveg))
 def gettext(szoveg): return input(timestamp() + " |  " + szoveg)
 
 class Bot(commands.Bot):
+	keksz_file = "keksz.json"
+	with open(keksz_file, "r") as kekszfile:
+		kekszdict = json.load(kekszfile)
 
 	def __init__(self, username, token, channel):
 		self.token = token
@@ -27,6 +30,26 @@ class Bot(commands.Bot):
 			write(message.author.display_name + ": " + message.content)
 			if "@" + self.username in message.content: await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
 			await self.handle_commands(message)
+
+###########################################################################
+
+	def get_keksz(self, nev):
+		if nev in self.kekszdict: return self.kekszdict[nev]
+		else:
+			self.set_keksz(nev, 0)
+			return self.get_keksz( nev)
+	
+	def set_keksz(self, nev, darab):
+		self.kekszdict[nev] = darab
+		with open(self.keksz_file, "w") as kekszfile:
+			json.dump(self.kekszdict, kekszfile, indent=4)
+
+	def send_keksz(self, nev_from, nev_to, darab):
+		fromdarab = self.get_keksz(nev_from)
+		self.set_keksz(nev_from, fromdarab - darab)
+		todarab = self.get_keksz(nev_to)
+		self.set_keksz(nev_to, todarab + darab)
+
 
 ###########################################################################
 
@@ -69,18 +92,26 @@ class Bot(commands.Bot):
 	async def nézők(self, ctx: commands.Context):
 		await ctx.send(str([chttr.name for chttr in self.connected_channels[0].chatters]).replace("'","")[1:-1])
 
-	#TO DO rewrite with cookie counter support in csv
+	#TO DO keksz earning by viewtime
 	@commands.command()
-	async def keksz(self, ctx: commands.Context, arg=None):
-		if arg == None: return await ctx.send("Jár a keksz, " + ctx.author.mention + "!")
-		#from urllib.request import urlopen
-		message = "Jár a keksz, " + ctx.author.mention + "!"
-		url = "https://tmi.twitch.tv/group/user/" + ctx.channel.__str__()[15:-1] + "/chatters"
-		response = urlopen(url)
-		viewersjson  = json.loads(response.read())
-		if "'" + arg.lower() + "'" in viewersjson["chatters"].__str__():
-			message = "Jár a keksz, @" + arg.lower() + "!"
-		await ctx.send(message)
+	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
+		kekszekszama = self.get_keksz(ctx.author.display_name)
+		if arg == None: await ctx.send(f"NomNom {kekszekszama} db kekszed van, {ctx.author.mention}")
+		else:
+			if arg[0] == '@': arg = arg[1:]
+			if arg2 == None:
+				if kekszekszama > 0:
+					self.send_keksz(ctx.author.display_name, arg, 1)
+					await ctx.send(f"NomNom Jár a keksz @{arg}!")
+				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
+
+			elif arg2.isnumeric() and int(arg2) > 0:
+				mennyit = int(arg2)
+				if kekszekszama > mennyit:
+					self.send_keksz(ctx.author.display_name, arg, mennyit)
+					await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
+				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
+			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
 
 ###########################################################################
 
