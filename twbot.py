@@ -1,5 +1,6 @@
 from twitchio.ext import commands,routines
 import json,datetime,os
+import requests
 
 def timestamp(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 def write(szoveg): print(timestamp() + " |  " + str(szoveg))
@@ -19,13 +20,31 @@ class Bot(commands.Bot):
 		self.channel = "#" + channel
 		super().__init__(token=token, prefix='!', initial_channels=[channel])
 	
-	
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
 		write("-> Watchtimer event")
-		#print("WatchersDict: ", self.watchersdict)
-		#print("KekszDict: ", self.kekszdict)
-		for nezoneve in [chttr.name for chttr in self.connected_channels[0].chatters if chttr.name != self.username]:
+		#TO DO more testing, channel.chatters doesnt seem to work really stable no api so tough luck, the web one works tho, the official implementation is dogshit
+		# V1, online unsupported api version, import requests USE THIS ONE
+		"""
+		viewersdict  = requests.get("http://tmi.twitch.tv/group/user/" + str(self.channel[1:]).lower() + "/chatters").json()
+		currentviewerslist = []
+		for value in viewersdict["chatters"].values():
+			currentviewerslist += value
+		"""
+		# Vshit, using twitchio's chattersgarbage shit, list index out of range when too many viewers SHITE
+		"""
+		currentviewerslist = []
+		for chttr in self.connected_channels[0].chatters:
+			currentviewerslist.append(chttr.name)
+		# -- OR --
+		currentviewerslist = [chttr.name for chttr in self.connected_channels[0].chatters] # list index out of range on having a shitton of viewers
+		print(currentviewerslist)
+		"""
+		#####################################################################################################
+		currentviewerslist = sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + str(self.channel[1:]).lower() + "/chatters").json()["chatters"].values()], [])
+		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
+
+		for nezoneve in currentviewerslist:
 			if nezoneve in self.watchersdict:
 				self.watchersdict[nezoneve] += 2
 				if self.watchersdict[nezoneve] > self.minutes_to_earn_keksz:
@@ -33,22 +52,8 @@ class Bot(commands.Bot):
 					self.watchersdict[nezoneve] -= self.minutes_to_earn_keksz
 					await self.connected_channels[0].send(f"NomNom Gratulálok @{nezoneve}! A  műsor {self.minutes_to_earn_keksz} perces nézésével kekszhez jutottál!")
 			else: self.watchersdict[nezoneve] = 2
-		for dictnev in self.watchersdict:
-			if dictnev not in [chttr.name for chttr in self.connected_channels[0].chatters]: self.watchersdict.pop(dictnev)
-		"""
-		TO DO more testing, it doesnt seem to work really stable no api so tough luck, it works to, the officcial implementation is dogshit
-		shit code to get the chatters from the unsupported url
-		@commands.command()
-    		async def keksz(self, ctx: commands.Context, arg):
-        	#from urllib.request import urlopen
-        message = "Jár a keksz, @" + ctx.author.name + "!"
-        url = "https://tmi.twitch.tv/group/user/" + ctx.channel.__str__()[15:-1] + "/chatters"
-        response = urlopen(url)
-        viewersjson  = json.loads(response.read())
-        if "'" + arg.lower() + "'" in viewersjson["chatters"].__str__():
-            message = "Jár a keksz, @" + arg.lower() + "!"
-        await ctx.send(message)
-		"""
+		for tempwatchernev in self.watchersdict:
+			if tempwatchernev not in currentviewerslist: self.watchersdict.pop(tempwatchernev)
 
 	async def event_ready(self):
 		self.watchtimer.start()
