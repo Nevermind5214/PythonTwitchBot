@@ -19,6 +19,8 @@ class Bot(commands.Bot):
 		self.username = username
 		self.channel = "#" + channel
 		super().__init__(token=token, prefix='!', initial_channels=[channel])
+
+	def getviewerlist(self): return sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
 	
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
@@ -41,7 +43,7 @@ class Bot(commands.Bot):
 		print(currentviewerslist)
 		"""
 		#####################################################################################################
-		currentviewerslist = sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
+		currentviewerslist = self.getviewerlist()
 		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
 
 		for nezoneve in currentviewerslist:
@@ -132,7 +134,7 @@ class Bot(commands.Bot):
 
 	@commands.command()
 	async def nézők(self, ctx: commands.Context):
-		await ctx.send(str([chttr.name for chttr in self.connected_channels[0].chatters if chttr.name != self.username]).replace("'","")[1:-1])
+		await ctx.send(str(self.getviewerlist()).replace("'","")[1:-1])
 
 	@commands.command()
 	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
