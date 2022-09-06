@@ -26,7 +26,7 @@ class Bot(commands.Bot):
 		#TO DO more testing, channel.chatters doesnt seem to work really stable no api so tough luck, the web one works tho, the official implementation is dogshit
 		# V1, online unsupported api version, import requests USE THIS ONE
 		"""
-		viewersdict  = requests.get("http://tmi.twitch.tv/group/user/" + str(self.channel[1:]).lower() + "/chatters").json()
+		viewersdict  = requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()
 		currentviewerslist = []
 		for value in viewersdict["chatters"].values():
 			currentviewerslist += value
@@ -41,7 +41,7 @@ class Bot(commands.Bot):
 		print(currentviewerslist)
 		"""
 		#####################################################################################################
-		currentviewerslist = sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + str(self.channel[1:]).lower() + "/chatters").json()["chatters"].values()], [])
+		currentviewerslist = sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
 		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
 
 		for nezoneve in currentviewerslist:
@@ -71,7 +71,7 @@ class Bot(commands.Bot):
 			if "@" + self.username in message.content: await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
 			await self.handle_commands(message)
 
-###########################################################################
+	###########################################################################
 
 	def get_keksz(self, nev):
 		if nev in self.kekszdict: return self.kekszdict[nev]
@@ -93,7 +93,7 @@ class Bot(commands.Bot):
 		self.set_keksz(nev_to, todarab + darab)
 
 
-###########################################################################
+	###########################################################################
 
 	@commands.command()
 	async def parancsok(self, ctx: commands.Context):
