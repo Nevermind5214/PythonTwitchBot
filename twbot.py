@@ -23,6 +23,8 @@ class Bot(commands.Bot):
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
 		write("-> Watchtimer event")
+		#print("WatchersDict: ", self.watchersdict)
+		#print("KekszDict: ", self.kekszdict)
 		for nezoneve in [chttr.name for chttr in self.connected_channels[0].chatters if chttr.name != self.username]:
 			if nezoneve in self.watchersdict:
 				self.watchersdict[nezoneve] += 2
@@ -34,7 +36,8 @@ class Bot(commands.Bot):
 		for dictnev in self.watchersdict:
 			if dictnev not in [chttr.name for chttr in self.connected_channels[0].chatters]: self.watchersdict.pop(dictnev)
 		"""
-		TO DO more testing, it doesnt seem to work really stable
+		TO DO more testing, it doesnt seem to work really stable no api so tough luck, it works to, the officcial implementation is dogshit
+		shit code to get the chatters from the unsupported url
 		@commands.command()
     		async def keksz(self, ctx: commands.Context, arg):
         	#from urllib.request import urlopen
@@ -55,7 +58,7 @@ class Bot(commands.Bot):
 		write("-" * 80)
 		await self.connected_channels[0].send("Jelen!")
 	
-	async def event_message(self, message):
+	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
 		if message.echo:
 			write(self.username + ": " + message.content)
 		else:
@@ -97,7 +100,7 @@ class Bot(commands.Bot):
 			"blade" : "I am Malenia, blade of Miquella",
 			"ish" : "Meg hal-tál :(",
 			"rot" : "Let your flesh be consumed. By the scarlet rot.",
-			"allguys" : ":( Fall Guys rbesenHi",
+			"allguys" : ":( Fall Guys HeyGuys",
 			"nihil" : "NIHIL!",
 			"iregiant" : "Aaargh! Aargh!",
 			"oolish" : "Put these foolish ambitions to rest.",
@@ -126,7 +129,6 @@ class Bot(commands.Bot):
 	async def nézők(self, ctx: commands.Context):
 		await ctx.send(str([chttr.name for chttr in self.connected_channels[0].chatters if chttr.name != self.username]).replace("'","")[1:-1])
 
-	#TO DO keksz earning by viewtime
 	@commands.command()
 	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
 		kekszekszama = self.get_keksz(ctx.author.display_name.lower())
@@ -150,38 +152,40 @@ class Bot(commands.Bot):
 
 ###########################################################################
 
-def main():
-	conf_file = "config.json"
+def load_config(conf_file):
+	confdict = {}
 
 	if os.path.isfile(conf_file):
-		with open(conf_file, "r") as read_file:
-			data = json.load(read_file)
-		username = data["username"]
-		token = data["token"]
-		channel = gettext(f'Channel to connect to(hit enter for {data["channel"]}): ')
-		if channel == "": channel = data["channel"]
-		else:
-			with open(conf_file, "w") as outfile: json.dump({"username": username, "token": token, "channel": channel}, outfile, indent = 4)
+		with open(conf_file, "r") as read_file: confdict = json.load(read_file)
+		tempchannel = gettext(f'Channel to connect to(hit enter for {confdict["channel"]}): ')
+		if tempchannel != "":
+			confdict["channel"] = tempchannel
+			with open(conf_file, "w") as outfile: json.dump(confdict, outfile, indent = 4)
 
 	else:
 		write(f'"{conf_file}" config file not found')
-
 		while True:
 			createnew = gettext("Create a new one? (y/n): ")
 			if createnew == 'y':
 				with open(conf_file, "w") as outfile:
-					username = gettext("Username: ")
-					token = gettext("Twitch token: ")
-					channel = gettext("Channel to connect to: ")
-					json.dump({"username": username, "token": token, "channel": channel}, outfile, indent = 4)
+					confdict["username"] = gettext("Username: ")
+					confdict["token"] = gettext("Twitch token: ")
+					confdict["channel"] = gettext("Channel to connect to: ")
+					json.dump(confdict, outfile, indent = 4)
 					write(f'"{conf_file}" config file created.')
 				break
 			elif createnew == 'n':
 				write(f'This program requires a "{conf_file}" in the same folder to function correctly.')
 				os._exit(0)
+	
+	return confdict
 
-	bot = Bot(username, token, channel)
+def main():
+	confdict = load_config("config.json")
+	bot = Bot(confdict["username"], confdict["token"], confdict["channel"])
 	bot.run()
+
+###########################################################################
 
 if __name__ == "__main__":
 	main()
