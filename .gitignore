@@ -1,6 +1,6 @@
 *
 !*.py
-!keksz.json
+!bot.json
 !*.txt
 !*.md
 !*.gitignore
