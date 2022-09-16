@@ -1,6 +1,5 @@
 *
 !*.py
-!bot.json
 !*.txt
 !*.md
 !*.gitignore
