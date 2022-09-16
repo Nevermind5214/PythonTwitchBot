@@ -2,6 +2,7 @@
 It is under developement, and I'm not very good at python so please be kind.
 
 The bot needs a bot.json file next to it with the contents of:
+```
 {
     "config": {
         "username": "the bots username",
@@ -17,3 +18,4 @@ The bot needs a bot.json file next to it with the contents of:
         "minutes_to_earn_keksz": 30
     }
 }
+```
