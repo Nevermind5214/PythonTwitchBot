@@ -1,101 +1,80 @@
 from twitchio.ext import commands,routines
-import json,datetime,os
-import requests
+import json,os,requests
 
-def timestamp(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-def write(szoveg): print(timestamp() + " |  " + str(szoveg))
-def gettext(szoveg): return input(timestamp() + " |  " + szoveg)
+def load_json_data(data_file):
+	data = {}
+	if os.path.isfile(data_file):
+		with open(data_file, "r") as read_file: data = json.load(read_file)
+	else:
+		print(f'"{data_file}" not found!')
+		os._exit(0)
+	return data
+
+def write_json_data(data_file_name, data):
+	with open(data_file_name, "w") as outfile: json.dump(data, outfile, indent = 4)
 
 class Bot(commands.Bot):
-	starter_keksz = 2
-	minutes_to_earn_keksz = 30
-	watchersdict = {}
-	keksz_file = "keksz.json"
-	with open(keksz_file, "r") as kekszfile:
-		kekszdict = json.load(kekszfile)
+	def __init__(self, botdata):
+		self.botdata_file_name = botdata
+		self.datajsondict = load_json_data(botdata)
 
-	def __init__(self, username, token, channel):
-		self.token = token
-		self.username = username
-		self.channel = "#" + channel
-		super().__init__(token=token, prefix='!', initial_channels=[channel])
+		self.token = self.datajsondict["config"]["token"]
+		self.username = self.datajsondict["config"]["username"]
+		self.channel = "#" + self.datajsondict["config"]["channel"]
+		self.watchersdict = {}
+
+		super().__init__(token=self.token, prefix='!', initial_channels=[self.channel])
 
 	def getviewerlist(self): return sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
 	
+	async def event_ready(self):
+		self.watchtimer.start()
+		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
+		print(f'User id is: {self.user_id}')
+		print("-" * 80)
+		await self.connected_channels[0].send("Jelen!")
+
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
-		write("-> Watchtimer event")
-		#TO DO more testing, channel.chatters doesnt seem to work really stable no api so tough luck, the web one works tho, the official implementation is dogshit
-		# V1, online unsupported api version, import requests USE THIS ONE
-		"""
-		viewersdict  = requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()
-		currentviewerslist = []
-		for value in viewersdict["chatters"].values():
-			currentviewerslist += value
-		"""
-		# Vshit, using twitchio's chattersgarbage shit, list index out of range when too many viewers SHITE
-		"""
-		currentviewerslist = []
-		for chttr in self.connected_channels[0].chatters:
-			currentviewerslist.append(chttr.name)
-		# -- OR --
-		currentviewerslist = [chttr.name for chttr in self.connected_channels[0].chatters] # list index out of range on having a shitton of viewers
-		print(currentviewerslist)
-		"""
-		#####################################################################################################
+		minutes_to_earn_keksz = self.datajsondict["kekszconfig"]["minutes_to_earn_keksz"]
 		currentviewerslist = self.getviewerlist()
 		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
 
 		for nezoneve in currentviewerslist:
 			if nezoneve in self.watchersdict:
 				self.watchersdict[nezoneve] += 2
-				if self.watchersdict[nezoneve] > self.minutes_to_earn_keksz:
+				if self.watchersdict[nezoneve] > minutes_to_earn_keksz:
 					self.set_keksz(nezoneve, self.get_keksz(nezoneve) + 1)
-					self.watchersdict[nezoneve] -= self.minutes_to_earn_keksz
-					await self.connected_channels[0].send(f"NomNom Gratulálok @{nezoneve}! A  műsor {self.minutes_to_earn_keksz} perces nézésével kekszhez jutottál!")
+					self.watchersdict[nezoneve] -= minutes_to_earn_keksz
+					await self.connected_channels[0].send(f"NomNom Gratulálok @{nezoneve}! A  műsor {minutes_to_earn_keksz} perces nézésével kekszhez jutottál!")
 			else: self.watchersdict[nezoneve] = 2
+
 		for tempwatchernev in self.watchersdict:
 			if tempwatchernev not in currentviewerslist: self.watchersdict.pop(tempwatchernev)
 
-	async def event_ready(self):
-		self.watchtimer.start()
-		write("-> Ready event")
-		write(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
-		write(f'User id is: {self.user_id}')
-		write("-" * 80)
-		await self.connected_channels[0].send("Jelen!")
-	
 	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
 		if message.echo:
-			write(self.username + ": " + message.content)
+			print(self.username + ": " + message.content)
 		else:
-			write(message.author.display_name + ": " + message.content)
+			print(message.author.display_name + ": " + message.content)
 			if "@" + self.username in message.content: await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
 			await self.handle_commands(message)
 
-	###########################################################################
-
 	def get_keksz(self, nev):
-		if nev in self.kekszdict: return self.kekszdict[nev]
+		if nev in self.datajsondict["kekszdata"]: return self.datajsondict["kekszdata"][nev]
 		else:
-			self.set_keksz(nev, self.starter_keksz)
+			self.set_keksz(nev, self.datajsondict["kekszconfig"]["starter_keksz"])
 			return self.get_keksz(nev)
 	
 	def set_keksz(self, nev, darab):
-		self.kekszdict[nev] = darab
-		with open(self.keksz_file, "w") as kekszfile:
-			json.dump(self.kekszdict, kekszfile, indent=4)
-			write("-> Keksz file i/o event")
+		self.datajsondict["kekszdata"][nev] = darab
+		write_json_data(self.botdata_file_name, self.datajsondict)
 
 	def send_keksz(self, nev_from, nev_to, darab):
-		write("-> Send keksz event")
 		fromdarab = self.get_keksz(nev_from)
 		self.set_keksz(nev_from, fromdarab - darab)
 		todarab = self.get_keksz(nev_to)
 		self.set_keksz(nev_to, todarab + darab)
-
-
-	###########################################################################
 
 	@commands.command()
 	async def parancsok(self, ctx: commands.Context):
@@ -157,42 +136,9 @@ class Bot(commands.Bot):
 				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
 			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
 
-###########################################################################
-
-def load_config(conf_file):
-	confdict = {}
-
-	if os.path.isfile(conf_file):
-		with open(conf_file, "r") as read_file: confdict = json.load(read_file)
-		tempchannel = gettext(f'Channel to connect to(hit enter for {confdict["channel"]}): ')
-		if tempchannel != "":
-			confdict["channel"] = tempchannel
-			with open(conf_file, "w") as outfile: json.dump(confdict, outfile, indent = 4)
-
-	else:
-		write(f'"{conf_file}" config file not found')
-		while True:
-			createnew = gettext("Create a new one? (y/n): ")
-			if createnew == 'y':
-				with open(conf_file, "w") as outfile:
-					confdict["username"] = gettext("Username: ")
-					confdict["token"] = gettext("Twitch token: ")
-					confdict["channel"] = gettext("Channel to connect to: ")
-					json.dump(confdict, outfile, indent = 4)
-					write(f'"{conf_file}" config file created.')
-				break
-			elif createnew == 'n':
-				write(f'This program requires a "{conf_file}" in the same folder to function correctly.')
-				os._exit(0)
-	
-	return confdict
-
 def main():
-	confdict = load_config("config.json")
-	bot = Bot(confdict["username"], confdict["token"], confdict["channel"])
+	bot = Bot("bot.json")
 	bot.run()
-
-###########################################################################
 
 if __name__ == "__main__":
 	main()
