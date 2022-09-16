@@ -1,0 +1,15 @@
+{
+    "config": {
+        "username": "neverbot5214",
+        "token": "here comes your twitch token",
+        "channel": "Nevermind5214"
+    },
+    "kekszdata": {
+        "rbesenczi": 7777,
+        "nevermind5214": 1337
+    },
+    "kekszconfig": {
+        "starter_keksz": 2,
+        "minutes_to_earn_keksz": 30
+    }
+}
