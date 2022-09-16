@@ -1,5 +1,6 @@
 from twitchio.ext import commands,routines
 import json,os,requests
+from aioconsole import ainput
 
 def load_json_data(data_file):
 	data = {}
@@ -16,7 +17,12 @@ def write_json_data(data_file_name, data):
 class Bot(commands.Bot):
 	def __init__(self, botdata):
 		self.botdata_file_name = botdata
-		self.datajsondict = load_json_data(botdata)
+		self.datajsondict = load_json_data(self.botdata_file_name)
+
+		tempchannel = input(f'Channel to connect to(hit enter for {self.datajsondict["config"]["channel"]}): ')
+		if tempchannel != "":
+			self.datajsondict["config"]["channel"] = tempchannel
+			write_json_data(self.botdata_file_name, self.datajsondict)
 
 		self.token = self.datajsondict["config"]["token"]
 		self.username = self.datajsondict["config"]["username"]
@@ -24,15 +30,20 @@ class Bot(commands.Bot):
 		self.watchersdict = {}
 
 		super().__init__(token=self.token, prefix='!', initial_channels=[self.channel])
-
+		
 	def getviewerlist(self): return sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
-	
+
 	async def event_ready(self):
 		self.watchtimer.start()
 		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
 		await self.connected_channels[0].send("Jelen!")
+		await self.consoleinputhandler()
+
+	async def consoleinputhandler(self):
+		while True:
+			await self.connected_channels[0].send(await ainput())
 
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
