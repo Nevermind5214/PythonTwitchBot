@@ -1,1 +1,2 @@
 infinite keksz for the broadcaster
+saját adattípusba tenni a nézőket és async-ba a fájlírást

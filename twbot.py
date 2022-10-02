@@ -1,6 +1,11 @@
-from twitchio.ext import commands,routines
 import json,os,requests
+from twitchio.ext import commands,routines
+from datetime import datetime
 from aioconsole import ainput
+
+old_print = print
+def timestamped_print(*args, **kwargs): old_print(datetime.now().strftime('%Y-%m-%d %H:%M:%S') + " |  ", *args, **kwargs)
+print = timestamped_print
 
 def load_json_data(data_file):
 	data = {}
@@ -38,7 +43,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		#await self.connected_channels[0].send("Jelen!")
+		await self.connected_channels[0].send("Jelen!")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -94,8 +99,25 @@ class Bot(commands.Bot):
 		self.set_keksz(nev_to, todarab + darab)
 
 	@commands.command()
-	async def parancsok(self, ctx: commands.Context):
-		await ctx.send(str(["!" + parancs for parancs in self.commands]).replace("'","")[1:-1])
+	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
+		kekszekszama = self.get_keksz(ctx.author.display_name.lower())
+		if arg == None: await ctx.send(f"NomNom {kekszekszama} db kekszed van, {ctx.author.mention}")
+		else:
+			if arg[0] == '@': arg = arg[1:]
+			arg = arg.lower()
+			if arg2 == None:
+				if kekszekszama > 0:
+					self.send_keksz(ctx.author.display_name.lower(), arg, 1)
+					await ctx.send(f"NomNom Jár a keksz @{arg}!")
+				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
+
+			elif arg2.isnumeric() and int(arg2) > 0:
+				mennyit = int(arg2)
+				if kekszekszama > mennyit:
+					self.send_keksz(ctx.author.display_name.lower(), arg, mennyit)
+					await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
+				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
+			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
 
 	@commands.command()
 	async def F(self, ctx: commands.Context, arg=None):
@@ -120,6 +142,14 @@ class Bot(commands.Bot):
 		else: await ctx.send('Rip in pepperoni. - nem ismert elhalálozás, "!F help" a halálokért')
 
 	@commands.command()
+	async def parancsok(self, ctx: commands.Context):
+		await ctx.send(str(["!" + parancs for parancs in self.commands]).replace("'","")[1:-1])
+
+	@commands.command()
+	async def nézők(self, ctx: commands.Context):
+		await ctx.send(str(self.getviewerlist()).replace("'","")[1:-1])
+
+	@commands.command()
 	async def goldenrule(self, ctx: commands.Context):
 		await ctx.send("THE MANY SHALL SUFFER FOR THE SINS OF THE ONE")
 
@@ -127,31 +157,6 @@ class Bot(commands.Bot):
 	async def sör(self, ctx: commands.Context):
 		message = "Ma Miller sör van, kedves " + ctx.author.mention + "!"
 		await ctx.send(message)
-
-	@commands.command()
-	async def nézők(self, ctx: commands.Context):
-		await ctx.send(str(self.getviewerlist()).replace("'","")[1:-1])
-
-	@commands.command()
-	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
-		kekszekszama = self.get_keksz(ctx.author.display_name.lower())
-		if arg == None: await ctx.send(f"NomNom {kekszekszama} db kekszed van, {ctx.author.mention}")
-		else:
-			if arg[0] == '@': arg = arg[1:]
-			arg = arg.lower()
-			if arg2 == None:
-				if kekszekszama > 0:
-					self.send_keksz(ctx.author.display_name.lower(), arg, 1)
-					await ctx.send(f"NomNom Jár a keksz @{arg}!")
-				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
-
-			elif arg2.isnumeric() and int(arg2) > 0:
-				mennyit = int(arg2)
-				if kekszekszama > mennyit:
-					self.send_keksz(ctx.author.display_name.lower(), arg, mennyit)
-					await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
-				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
-			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
 
 def main():
 	bot = Bot("bot.json")
