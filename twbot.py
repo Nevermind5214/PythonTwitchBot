@@ -38,7 +38,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		await self.connected_channels[0].send("Jelen!")
+		await self.connected_channels[0].send("Jelen")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -60,7 +60,8 @@ class Bot(commands.Bot):
 					await self.connected_channels[0].send(f"NomNom Gratulálok @{nezoneve}! A  műsor {minutes_to_earn_keksz} perces nézésével kekszhez jutottál!")
 			else: self.watchersdict[nezoneve] = 2
 
-		for tempwatchernev in self.watchersdict:
+		tempwatchersdict = self.watchersdict.copy()
+		for tempwatchernev in tempwatchersdict:
 			if tempwatchernev not in currentviewerslist: self.watchersdict.pop(tempwatchernev)
 
 	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
