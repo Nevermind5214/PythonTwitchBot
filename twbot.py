@@ -38,7 +38,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		await self.connected_channels[0].send("Jelen")
+		#await self.connected_channels[0].send("Jelen!")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -50,6 +50,7 @@ class Bot(commands.Bot):
 		minutes_to_earn_keksz = self.datajsondict["kekszconfig"]["minutes_to_earn_keksz"]
 		currentviewerslist = self.getviewerlist()
 		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
+		kekszetkaptak = []
 
 		for nezoneve in currentviewerslist:
 			if nezoneve in self.watchersdict:
@@ -57,8 +58,12 @@ class Bot(commands.Bot):
 				if self.watchersdict[nezoneve] > minutes_to_earn_keksz:
 					self.set_keksz(nezoneve, self.get_keksz(nezoneve) + 1)
 					self.watchersdict[nezoneve] -= minutes_to_earn_keksz
-					await self.connected_channels[0].send(f"NomNom Gratulálok @{nezoneve}! A  műsor {minutes_to_earn_keksz} perces nézésével kekszhez jutottál!")
+					kekszetkaptak.append("@" + nezoneve)
 			else: self.watchersdict[nezoneve] = 2
+
+		if len(kekszetkaptak) > 0:
+			kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
+			await self.connected_channels[0].send(f"NomNom Gratulálok {kekszetkaptak}! {minutes_to_earn_keksz} perces jelenléteddel kekszhez jutottál!")
 
 		tempwatchersdict = self.watchersdict.copy()
 		for tempwatchernev in tempwatchersdict:
