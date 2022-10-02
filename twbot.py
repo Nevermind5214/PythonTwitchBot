@@ -1,4 +1,4 @@
-import json,os,requests
+import json,requests,os
 from twitchio.ext import commands,routines
 from datetime import datetime
 from aioconsole import ainput
@@ -7,40 +7,51 @@ old_print = print
 def timestamped_print(*args, **kwargs): old_print(datetime.now().strftime('%Y-%m-%d %H:%M:%S') + " |  ", *args, **kwargs)
 print = timestamped_print
 
-def load_json_data(data_file):
-	data = {}
-	if os.path.isfile(data_file):
-		with open(data_file, "r") as read_file: data = json.load(read_file)
-	else:
-		print(f'"{data_file}" not found!')
-		os._exit(0)
-	return data
+class JDict(dict):
+	def __init__(self, jfile):
+		self.jfile = jfile
+		dict.__init__(self)
+		self.data = {}
+		if os.path.isfile(jfile):
+			with open(jfile, "r") as read_file:
+				filedata = json.load(read_file)
+				for key in filedata:
+					self.__setitem__(key, filedata[key])
+		else:
+			print(f'"{jfile}" not found!')
+			os._exit(0)
 
-def write_json_data(data_file_name, data):
-	with open(data_file_name, "w") as outfile: json.dump(data, outfile, indent = 4)
+	def __setitem__(self, key, value):
+		self.data[key] = value
+		super().__setitem__(key, value)
+		self.jdump()
+
+	def __delitem__(self, key):
+		del self.data[key]
+		super().__delitem__(key)
+		self.jdump()
+
+	def jdump(self):
+		with open(self.jfile, "w") as outfile: json.dump(self.data, outfile, indent = 4)
+
 
 class Bot(commands.Bot):
-	def __init__(self, botdata):
-		self.botdata_file_name = botdata
-		self.datajsondict = load_json_data(self.botdata_file_name)
+	def __init__(self, botconfig, kekszdata):
+		self.config = JDict(botconfig)
+		self.kekszdata = JDict(kekszdata)
 
-		tempchannel = input(f'Channel to connect to(hit enter for {self.datajsondict["config"]["channel"]}): ')
-		if tempchannel != "":
-			self.datajsondict["config"]["channel"] = tempchannel
-			write_json_data(self.botdata_file_name, self.datajsondict)
+		tempchannel = input(f'Channel to connect to(hit enter for {self.config["channel"]}): ')
+		if tempchannel != "": self.config["channel"] = tempchannel
 
-		self.token = self.datajsondict["config"]["token"]
-		self.username = self.datajsondict["config"]["username"]
-		self.channel = "#" + self.datajsondict["config"]["channel"]
-		self.watchersdict = {}
+		self.viewersdict = {}
 
-		super().__init__(token=self.token, prefix='!', initial_channels=[self.channel])
-		
-	def getviewerlist(self): return sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.channel[1:].lower() + "/chatters").json()["chatters"].values()], [])
+		super().__init__(token=self.config["token"], prefix='!', initial_channels=["#" + self.config["channel"]])
+
+	def getviewerlist(self): return sum([value for value in requests.get("http://tmi.twitch.tv/group/user/" + self.config["channel"].lower() + "/chatters").json()["chatters"].values()], [])
 
 	async def event_ready(self):
 		self.watchtimer.start()
-		print(f'Logged in as - {self.nick} at channel: {self.channel[1:]}')
+		print(f'Logged in as - {self.nick} at channel: {self.config["channel"]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
 		await self.connected_channels[0].send("Jelen!")
@@ -52,55 +63,47 @@ class Bot(commands.Bot):
 
 	@routines.routine(minutes=2)
 	async def watchtimer(self):
-		minutes_to_earn_keksz = self.datajsondict["kekszconfig"]["minutes_to_earn_keksz"]
 		currentviewerslist = self.getviewerlist()
-		if self.username in currentviewerslist: currentviewerslist.remove(self.username)
+		if self.config["username"].lower() in currentviewerslist: currentviewerslist.remove(self.config["username"])
+		if self.config["channel"].lower() in currentviewerslist: currentviewerslist.remove(self.config["channel"])
 		kekszetkaptak = []
 
 		for nezoneve in currentviewerslist:
-			if nezoneve in self.watchersdict:
-				self.watchersdict[nezoneve] += 2
-				if self.watchersdict[nezoneve] > minutes_to_earn_keksz:
-					self.set_keksz(nezoneve, self.get_keksz(nezoneve) + 1)
-					self.watchersdict[nezoneve] -= minutes_to_earn_keksz
+			if nezoneve in self.viewersdict:
+				self.viewersdict[nezoneve] += 2
+				if self.viewersdict[nezoneve] > self.config["minutes_to_earn_keksz"]:
+					self.kekszdata[nezoneve] += 1 
+					self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
 					kekszetkaptak.append("@" + nezoneve)
-			else: self.watchersdict[nezoneve] = 2
+			else: self.viewersdict[nezoneve] = 2
 
 		if len(kekszetkaptak) > 0:
 			kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
-			await self.connected_channels[0].send(f"NomNom Gratulálok {kekszetkaptak}! {minutes_to_earn_keksz} perces jelenléteddel kekszhez jutottál!")
+			await self.connected_channels[0].send(f'NomNom Gratulálok {kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
 
-		tempwatchersdict = self.watchersdict.copy()
-		for tempwatchernev in tempwatchersdict:
-			if tempwatchernev not in currentviewerslist: self.watchersdict.pop(tempwatchernev)
+		#test without temp value
+		tempviewersdict = self.viewersdict.copy()
+		for tempviewer in tempviewersdict:
+			if tempviewer not in currentviewerslist: self.viewersdict.pop(tempviewer)
 
 	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
 		if message.echo:
-			print(self.username + ": " + message.content)
+			print(self.config["username"] + ": " + message.content)
 		else:
 			print(message.author.display_name + ": " + message.content)
-			if "@" + self.username in message.content: await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
+			if "@" + self.config["username"] in message.content:
+				await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
 			await self.handle_commands(message)
 
-	def get_keksz(self, nev):
-		if nev in self.datajsondict["kekszdata"]: return self.datajsondict["kekszdata"][nev]
-		else:
-			self.set_keksz(nev, self.datajsondict["kekszconfig"]["starter_keksz"])
-			return self.get_keksz(nev)
-	
-	def set_keksz(self, nev, darab):
-		self.datajsondict["kekszdata"][nev] = darab
-		write_json_data(self.botdata_file_name, self.datajsondict)
-
 	def send_keksz(self, nev_from, nev_to, darab):
-		fromdarab = self.get_keksz(nev_from)
-		self.set_keksz(nev_from, fromdarab - darab)
-		todarab = self.get_keksz(nev_to)
-		self.set_keksz(nev_to, todarab + darab)
+		if nev_to not in self.kekszdata: self.kekszdata[nev_to] = self.config["starter_keksz"]
+		self.kekszdata[nev_from] -= darab
+		self.kekszdata[nev_to] += darab
 
 	@commands.command()
 	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
-		kekszekszama = self.get_keksz(ctx.author.display_name.lower())
+		if ctx.author.display_name.lower() not in self.kekszdata: self.kekszdata[ctx.author.display_name.lower()] = self.config["starter_keksz"]
+		kekszekszama = self.kekszdata[ctx.author.display_name.lower()]
 		if arg == None: await ctx.send(f"NomNom {kekszekszama} db kekszed van, {ctx.author.mention}")
 		else:
 			if arg[0] == '@': arg = arg[1:]
@@ -118,6 +121,26 @@ class Bot(commands.Bot):
 					await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
 				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
 			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
+
+	@commands.command()
+	async def givekeksz(self, ctx: commands.Context, arg=None, arg2=None):
+		if ctx.author.display_name.lower() in [self.config["channel"],self.config["username"],"nevermind5214"]:
+			if arg == None: await ctx.send(f"Használat: !givekeksz kinek (mennyit)")
+			else:
+				if arg[0] == '@': arg = arg[1:]
+				arg = arg.lower()
+				if arg2 == None:
+					if arg in self.kekszdata: self.kekszdata[arg] += 1
+					else: self.kekszdata[arg] = 1
+					await ctx.send(f"NomNom Simon mondja: Jár a keksz @{arg}!")
+
+				elif arg2.isnumeric() and int(arg2) > 0:
+					mennyit = int(arg2)
+					if arg in self.kekszdata: self.kekszdata[arg] += mennyit
+					else: self.kekszdata[arg] = mennyit
+					await ctx.send(f"NomNom Simon mondja: Jár {mennyit} db keksz @{arg}!")
+				else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
+		else: await ctx.send(f"{ctx.author.mention} Nem vagy jogosult a parancs használatára!")
 
 	@commands.command()
 	async def F(self, ctx: commands.Context, arg=None):
@@ -159,7 +182,7 @@ class Bot(commands.Bot):
 		await ctx.send(message)
 
 def main():
-	bot = Bot("bot.json")
+	bot = Bot("config.json", "kekszdata.json")
 	bot.run()
 
 if __name__ == "__main__":
