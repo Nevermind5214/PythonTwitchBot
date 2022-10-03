@@ -81,10 +81,9 @@ class Bot(commands.Bot):
 			kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
 			await self.connected_channels[0].send(f'NomNom Gratulálok {kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
 
-		#test without temp value
 		tempviewersdict = self.viewersdict.copy()
 		for tempviewer in tempviewersdict:
-			if tempviewer not in currentviewerslist: self.viewersdict.pop(tempviewer)
+			if tempviewer not in currentviewerslist: del self.viewersdict[tempviewer]
 
 	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
 		if message.echo:
