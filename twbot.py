@@ -1,39 +1,12 @@
-import json,requests,os
+import requests
 from twitchio.ext import commands,routines
 from datetime import datetime
 from aioconsole import ainput
+from JDict import JDict
 
 old_print = print
 def timestamped_print(*args, **kwargs): old_print(datetime.now().strftime('%Y-%m-%d %H:%M:%S') + " |  ", *args, **kwargs)
 print = timestamped_print
-
-class JDict(dict):
-	def __init__(self, jfile):
-		self.jfile = jfile
-		dict.__init__(self)
-		self.data = {}
-		if os.path.isfile(jfile):
-			with open(jfile, "r") as read_file:
-				filedata = json.load(read_file)
-				for key in filedata:
-					self.__setitem__(key, filedata[key])
-		else:
-			print(f'"{jfile}" not found!')
-			os._exit(0)
-
-	def __setitem__(self, key, value):
-		self.data[key] = value
-		super().__setitem__(key, value)
-		self.jdump()
-
-	def __delitem__(self, key):
-		del self.data[key]
-		super().__delitem__(key)
-		self.jdump()
-
-	def jdump(self):
-		with open(self.jfile, "w") as outfile: json.dump(self.data, outfile, indent = 4)
-
 
 class Bot(commands.Bot):
 	def __init__(self, botconfig, kekszdata):
