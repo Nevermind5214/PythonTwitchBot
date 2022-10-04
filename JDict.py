@@ -4,9 +4,6 @@ class JDict(dict):
 	def __init__(self, jfile=None, parent=None):
 		self.jfile = jfile
 		self.parent = parent
-		if type(self.jfile) == JDict:
-			self.parent = self.jfile
-			self.jfile = None
 		dict.__init__(self)
 		self.data = {}
 		if self.jfile is not None and os.path.isfile(jfile): #ha létezik a fájl
@@ -22,15 +19,15 @@ class JDict(dict):
 			self.jdump()
 
 	def __setitem__(self, key, value):
-		if type(value) == dict: #dict-et átrakjuk JDict-be hogy tudjuk majd hívni a szülő jdump-ját is
-			temp = value
-			value = JDict(self)
-			for k in temp:
-				value[k] = temp[k]
-
-		if type(value) == JDict: #ha JDict az érték akkor beállítjuk nála a külső containert
+		if type(value) == JDict: #ha JDict az érték akkor beállítjuk nála a külső containert, először Jdict-et vizsgálunk hogy ne legyen kettős másolás dict-nél
 			value = value.copy()
 			value.parent = self
+
+		if type(value) == dict: #dict-et átrakjuk JDict-be hogy tudjuk majd hívni a szülő jdump-ját is
+			temp = value
+			value = JDict(parent=self)
+			for k in temp:
+				value[k] = temp[k]
 
 		self.data[key] = value
 		super().__setitem__(key, value)
