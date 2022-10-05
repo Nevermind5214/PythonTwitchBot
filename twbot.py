@@ -29,7 +29,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.config["channel"]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		#await self.connected_channels[0].send("Jelen!")
+		await self.connected_channels[0].send("Jelen!")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -57,6 +57,7 @@ class Bot(commands.Bot):
 
 			if len(self.kekszetkaptak) > 0:
 				self.kekszetkaptak = str(self.kekszetkaptak).replace("'","")[1:-1]
+				if len(self.kekszetkaptak) > 250: self.kekszetkaptak = self.kekszetkaptak[:250] + "..."
 				await self.connected_channels[0].send(f'NomNom Gratulálok {self.kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
 			
 			self.kekszetkaptak = []
