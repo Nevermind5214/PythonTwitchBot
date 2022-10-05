@@ -17,6 +17,7 @@ class Bot(commands.Bot):
 		if tempchannel != "": self.config["channel"] = tempchannel
 
 		self.viewersdict = {}
+		self.kekszannouncementcounter = 0
 
 		super().__init__(token=self.config["token"], prefix='!', initial_channels=["#" + self.config["channel"]])
 
@@ -48,9 +49,13 @@ class Bot(commands.Bot):
 				self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
 				kekszetkaptak.append("@" + nezoneve)
 
-		if len(kekszetkaptak) > 0:
-			kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
-			await self.connected_channels[0].send(f'NomNom Gratulálok {kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
+		self.kekszannouncementcounter += 1
+		if self.kekszannouncementcounter >= self.config["minutes_to_earn_keksz"]:
+			self.kekszannouncementcounter = 0
+
+			if len(kekszetkaptak) > 0:
+				kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
+				await self.connected_channels[0].send(f'NomNom Gratulálok {kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
 
 		tempviewersdict = self.viewersdict.copy()
 		for tempviewer in tempviewersdict:
