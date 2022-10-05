@@ -27,7 +27,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.config["channel"]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		await self.connected_channels[0].send("Jelen!")
+		#await self.connected_channels[0].send("Jelen!")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -42,13 +42,11 @@ class Bot(commands.Bot):
 		kekszetkaptak = []
 
 		for nezoneve in currentviewerslist:
-			if nezoneve in self.viewersdict:
-				self.viewersdict[nezoneve] += 2
-				if self.viewersdict[nezoneve] > self.config["minutes_to_earn_keksz"]:
-					self.kekszdata[nezoneve] += 1 
-					self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
-					kekszetkaptak.append("@" + nezoneve)
-			else: self.viewersdict[nezoneve] = 2
+			self.viewersdict[nezoneve] = self.viewersdict.get(nezoneve, 0) + 2
+			if self.viewersdict[nezoneve] > self.config["minutes_to_earn_keksz"]:
+				self.kekszdata[nezoneve] = self.kekszdata.get(nezoneve, self.config["starter_keksz"]) + 1
+				self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
+				kekszetkaptak.append("@" + nezoneve)
 
 		if len(kekszetkaptak) > 0:
 			kekszetkaptak = str(kekszetkaptak).replace("'","")[1:-1]
