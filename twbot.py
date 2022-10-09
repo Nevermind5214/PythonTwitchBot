@@ -59,6 +59,7 @@ class Bot(commands.Bot):
 				self.kekszetkaptak = str(self.kekszetkaptak).replace("'","")[1:-1]
 				if len(self.kekszetkaptak) > 250: self.kekszetkaptak = self.kekszetkaptak[:250] + "..."
 				await self.connected_channels[0].send(f'NomNom Gratulálok {self.kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
+			else: self.kekszannouncementcounter -= 2
 			
 			self.kekszetkaptak = []
 
