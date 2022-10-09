@@ -29,7 +29,7 @@ class Bot(commands.Bot):
 		print(f'Logged in as - {self.nick} at channel: {self.config["channel"]}')
 		print(f'User id is: {self.user_id}')
 		print("-" * 80)
-		await self.connected_channels[0].send("Jelen!")
+		#await self.connected_channels[0].send("Jelen!")
 		await self.consoleinputhandler()
 
 	async def consoleinputhandler(self):
@@ -50,7 +50,7 @@ class Bot(commands.Bot):
 				self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
 				self.kekszetkaptak.append("@" + nezoneve)
 
-		self.kekszannouncementcounter += 1
+		self.kekszannouncementcounter += 2
 		#keksz announcement
 		if self.kekszannouncementcounter >= self.config["minutes_to_earn_keksz"]:
 			self.kekszannouncementcounter = 0
