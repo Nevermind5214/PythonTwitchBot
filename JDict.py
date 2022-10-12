@@ -6,6 +6,7 @@ class JDict(dict):
 		self.parent = parent
 		dict.__init__(self)
 		self.data = {}
+
 		if self.jfile is not None and os.path.isfile(jfile): #ha létezik a fájl
 			with open(jfile, "r") as read_file:
 				try:
@@ -15,6 +16,7 @@ class JDict(dict):
 				except ValueError as err:
 					print(f'"{jfile}" is not a valid json!')
 					os._exit(0)
+
 		else: #még nincs fájl vagy nem is kell
 			self.jdump()
 

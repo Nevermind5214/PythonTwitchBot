@@ -41,7 +41,6 @@ class Bot(commands.Bot):
 		currentviewerslist = self.getviewerlist()
 		if self.config["username"].lower() in currentviewerslist: currentviewerslist.remove(self.config["username"])
 		if self.config["channel"].lower() in currentviewerslist: currentviewerslist.remove(self.config["channel"])
-		
 
 		for nezoneve in currentviewerslist:
 			self.viewersdict[nezoneve] = self.viewersdict.get(nezoneve, 0) + 2
@@ -50,8 +49,8 @@ class Bot(commands.Bot):
 				self.viewersdict[nezoneve] -= self.config["minutes_to_earn_keksz"]
 				self.kekszetkaptak.append("@" + nezoneve)
 
-		self.kekszannouncementcounter += 2
 		#keksz announcement
+		self.kekszannouncementcounter += 2
 		if self.kekszannouncementcounter >= self.config["minutes_to_earn_keksz"] and len(self.kekszetkaptak) > 0:
 			self.kekszannouncementcounter = 0
 			self.kekszetkaptak = ", ".join(self.kekszetkaptak)
@@ -65,59 +64,41 @@ class Bot(commands.Bot):
 
 	async def event_message(self, message): #bug in twitcho? message.content seem to lose the first character if it is a ':'
 		if message.echo:
-			print(self.config["username"] + ": " + message.content)
+			print(self.config["username"], ": ", message.content)
+
 		else:
-			print(message.author.display_name + ": " + message.content)
+			print(message.author.display_name, ": ", message.content)
 			if "@" + self.config["username"] in message.content:
 				await self.connected_channels[0].send("Hali, " + message.author.mention + "! Én csak egy bot vagyok. Az elfogadott parancsokért írd hogy: !parancsok")
 			await self.handle_commands(message)
 
 	def send_keksz(self, nev_from, nev_to, darab):
-		if nev_to not in self.kekszdata: self.kekszdata[nev_to] = self.config["starter_keksz"]
-		self.kekszdata[nev_from] -= darab
-		self.kekszdata[nev_to] += darab
+		if self.kekszdata.get(nev_from, self.config["starter_keksz"]) >= darab:
+			self.kekszdata[nev_from] = self.kekszdata.get(nev_from, self.config["starter_keksz"]) - darab
+			self.kekszdata[nev_to] = self.kekszdata.get(nev_to, self.config["starter_keksz"]) + darab
+			return True
+		else: return False
 
 	@commands.command()
 	async def keksz(self, ctx: commands.Context, arg=None, arg2=None):
-		if ctx.author.display_name.lower() not in self.kekszdata: self.kekszdata[ctx.author.display_name.lower()] = self.config["starter_keksz"]
-		kekszekszama = self.kekszdata[ctx.author.display_name.lower()]
-		if arg == None: await ctx.send(f"NomNom {kekszekszama} db kekszed van, {ctx.author.mention}")
+		nev_from = ctx.author.display_name.lower()
+
+		if arg == None: await ctx.send(f"NomNom {self.kekszdata.get(nev_from, self.config['starter_keksz'])} db kekszed van, {ctx.author.mention}")
+
 		else:
 			if arg[0] == '@': arg = arg[1:]
 			arg = arg.lower()
+
 			if arg2 == None:
-				if kekszekszama > 0:
-					self.send_keksz(ctx.author.display_name.lower(), arg, 1)
-					await ctx.send(f"NomNom Jár a keksz @{arg}!")
+				if self.send_keksz(nev_from, arg, 1): await ctx.send(f"NomNom Jár a keksz @{arg}!")
 				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
 
 			elif arg2.isnumeric() and int(arg2) > 0:
 				mennyit = int(arg2)
-				if kekszekszama > mennyit:
-					self.send_keksz(ctx.author.display_name.lower(), arg, mennyit)
-					await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
+				if self.send_keksz(nev_from, arg, mennyit): await ctx.send(f"NomNom Jár {mennyit} db keksz @{arg}!")
 				else: await ctx.send(f":( Nincs sajnos hozzá elég kekszed, {ctx.author.mention}")
+
 			else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
-
-	@commands.command()
-	async def givekeksz(self, ctx: commands.Context, arg=None, arg2=None):
-		if ctx.author.display_name.lower() in [self.config["channel"],self.config["username"],"nevermind5214"]:
-			if arg == None: await ctx.send(f"Használat: !givekeksz kinek (mennyit)")
-			else:
-				if arg[0] == '@': arg = arg[1:]
-				arg = arg.lower()
-				if arg2 == None:
-					if arg in self.kekszdata: self.kekszdata[arg] += 1
-					else: self.kekszdata[arg] = 1
-					await ctx.send(f"NomNom Simon mondja: Jár a keksz @{arg}!")
-
-				elif arg2.isnumeric() and int(arg2) > 0:
-					mennyit = int(arg2)
-					if arg in self.kekszdata: self.kekszdata[arg] += mennyit
-					else: self.kekszdata[arg] = mennyit
-					await ctx.send(f"NomNom Simon mondja: Jár {mennyit} db keksz @{arg}!")
-				else: await ctx.send(f"{ctx.author.mention} Második argumentumnak pozitív egész számot adj meg!")
-		else: await ctx.send(f"{ctx.author.mention} Nem vagy jogosult a parancs használatára!")
 
 	@commands.command()
 	async def F(self, ctx: commands.Context, arg=None):
