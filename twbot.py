@@ -54,7 +54,7 @@ class Bot(commands.Bot):
 		#keksz announcement
 		if self.kekszannouncementcounter >= self.config["minutes_to_earn_keksz"] and len(self.kekszetkaptak) > 0:
 			self.kekszannouncementcounter = 0
-			self.kekszetkaptak = str(self.kekszetkaptak).replace("'","")[1:-1]
+			self.kekszetkaptak = ", ".join(self.kekszetkaptak)
 			if len(self.kekszetkaptak) > 250: self.kekszetkaptak = self.kekszetkaptak[:250] + "..."
 			await self.connected_channels[0].send(f'NomNom Gratulálok {self.kekszetkaptak}! A {self.config["minutes_to_earn_keksz"]} perces jelenléteddel kekszhez jutottál!')
 			self.kekszetkaptak = []
@@ -137,17 +137,17 @@ class Bot(commands.Bot):
 		}
 
 		if arg == None: return await ctx.send("Rip in pepperoni.")
-		elif arg == "help": await ctx.send(str(["!F " + halal for halal in halalok]).replace("'","")[1:-1])
+		elif arg == "help": await ctx.send(", ".join(["!F " + halal for halal in halalok]))
 		elif arg in halalok: await ctx.send(halalok[arg])
 		else: await ctx.send('Rip in pepperoni. - nem ismert elhalálozás, "!F help" a halálokért')
 
 	@commands.command()
 	async def parancsok(self, ctx: commands.Context):
-		await ctx.send(str(["!" + parancs for parancs in self.commands]).replace("'","")[1:-1])
+		await ctx.send(", ".join(["!" + parancs for parancs in self.commands]))
 
 	@commands.command()
 	async def nézők(self, ctx: commands.Context):
-		await ctx.send(str(self.getviewerlist()).replace("'","")[1:-1])
+		await ctx.send(", ".join(self.getviewerlist()))
 
 	@commands.command()
 	async def goldenrule(self, ctx: commands.Context):
