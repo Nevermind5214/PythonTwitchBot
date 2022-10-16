@@ -134,11 +134,6 @@ class Bot(commands.Bot):
 	async def goldenrule(self, ctx: commands.Context):
 		await ctx.send("THE MANY SHALL SUFFER FOR THE SINS OF THE ONE")
 
-	@commands.command()
-	async def sör(self, ctx: commands.Context):
-		message = "Ma Miller sör van, kedves " + ctx.author.mention + "!"
-		await ctx.send(message)
-
 def main():
 	bot = Bot("config.json", "kekszdata.json")
 	bot.run()
