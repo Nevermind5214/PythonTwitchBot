@@ -108,6 +108,7 @@ class Bot(commands.Bot):
 			"rot" : "Let your flesh be consumed. By the scarlet rot.",
 			"allguys" : ":( Fall Guys HeyGuys",
 			"nihil" : "NIHIL!",
+			"balta" : "Lemme axe u something real quick",
 			"iregiant" : "Aaargh! Aargh!",
 			"oolish" : "Put these foolish ambitions to rest.",
 			"cruci" : "Lecsaptak ketchupnak",
